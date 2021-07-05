@@ -57,7 +57,7 @@ class BaseOptions():
         self.initialized = True
         return parser
 
-    def gather_options(self):
+    def gather_options(self, mod=[]):
         """Initialize our parser with basic options(only once).
         Add additional model-specific and dataset-specific options.
         These options are defined in the <modify_commandline_options> function
@@ -66,15 +66,20 @@ class BaseOptions():
         if not self.initialized:  # check if it has been initialized
             parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
             parser = self.initialize(parser)
-
         # get the basic options
-        opt, _ = parser.parse_known_args()
+        if len(mod) > 0:
+            opt, _ = parser.parse_known_args(mod)
+        else:
+            opt, _ = parser.parse_known_args()
 
         # modify model-related parser options
         model_name = opt.model
         model_option_setter = models.get_option_setter(model_name)
         parser = model_option_setter(parser, self.isTrain)
-        opt, _ = parser.parse_known_args()  # parse again with new defaults
+        if len(mod) > 0:
+            opt, _ = parser.parse_known_args(mod)
+        else:
+            opt, _ = parser.parse_known_args()
 
         # modify dataset-related parser options
         dataset_name = opt.dataset_mode
@@ -83,7 +88,11 @@ class BaseOptions():
 
         # save and return the parser
         self.parser = parser
-        return parser.parse_args()
+        
+        if len(mod) > 0:
+            return parser.parse_args(mod)
+        else:
+            return parser.parse_args()
 
     def print_options(self, opt):
         """Print and save options
@@ -110,9 +119,9 @@ class BaseOptions():
             opt_file.write(message)
             opt_file.write('\n')
 
-    def parse(self):
+    def parse(self, mod=[]):
         """Parse our options, create checkpoints directory suffix, and set up gpu device."""
-        opt = self.gather_options()
+        opt = self.gather_options(mod=mod)
         opt.isTrain = self.isTrain   # train or test
 
         # process opt.suffix
